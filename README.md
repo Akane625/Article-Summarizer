@@ -9,7 +9,7 @@ This repository contains text summarizers using NLP techniques like `Frequency-b
 1. Install [Python](https://www.python.org/downloads/)
 2. Download the files and store it in any folder on your desktop (make sure all the files are in the same folder)
 3. In command prompt (cmd) run `pip install -r requirements.txt` to install the libraries necessary
-4. Open [VSCode](https://code.visualstudio.com/), [Jupyter Notebook](https://jupyter.org/install) or any related environments (make sure you are using a ipynb format not py)
+4. Open [Jupyter Notebook](https://jupyter.org/install) or any related environments (make sure you are using a ipynb format not py)
 5. Run the program
 
 PS: The code was aided with OpenAI's ChatGPT
