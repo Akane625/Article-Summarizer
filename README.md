@@ -1,4 +1,15 @@
-# Text-Summarizer
+# Overview
+**Created:** June 16 - 19, 2026  
 Dataset from [AsadMahmood (Kaggle)](https://www.kaggle.com/datasets/asad1m9a9h6mood/news-articles)
 
-This repository contains a text summarizer using NLP techniques like Frequency-based scoring, TF-IDF, and Text Ranking (TF-IDF + Cosine Similarities). There will be two files, one is the jupyter notebook where the project will be tested and created and the other will be the code for the deployment build on streamlit.
+# About the Program
+This repository contains text summarizers using NLP techniques like `Frequency-based scoring`, `TF-IDF (Term Frequency - Inverse Document Frequency)`, and `Text Ranking (TF-IDF + Cosine Similarities)`. The project is a ipynb file with a simple UI. The notebook explores these extractive methods, which takes the "most important" sentences, on a dataset with news articles. I plan to create a streamlit version where you input your own articles eventually.
+
+# How to Install
+1. Install [Python](https://www.python.org/downloads/)
+2. Download the files and store it in any folder on your desktop (make sure all the files are in the same folder)
+3. In command prompt (cmd) run `pip install -r requirements.txt` to install the libraries necessary
+4. Open [VSCode](https://code.visualstudio.com/), [Jupyter Notebook](https://jupyter.org/install) or any related environments (make sure you are using a ipynb format not py)
+5. Run the program
+
+PS: The code was aided with OpenAI's ChatGPT
