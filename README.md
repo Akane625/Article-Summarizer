@@ -12,7 +12,4 @@ This repository contains text summarizers using NLP techniques like `Frequency-b
 4. Open [Jupyter Notebook](https://jupyter.org/install) or any related environments (make sure you are using a ipynb format not py)
 5. Run the program
 
-PS: The code was aided with OpenAI's ChatGPT
-
-
-self note add more math explanations and mini examples
+PS: The code was aided with Anthropic's Claude
