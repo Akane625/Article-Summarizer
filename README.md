@@ -14,6 +14,6 @@ This repository contains extractive article summarizers using NLP techniques lik
 5. Run the program
 
 # Deployed Version
-This [link]() will lead you to the website version wherein you enter your own article. You can customize it by selecting the amount of sentences you want each method to output.
+This [link](https://article-summarizer-akane.streamlit.app/) will lead you to the website version wherein you enter your own article. You can customize it by selecting the amount of sentences you want each method to output.
 
 PS: The code was aided with Anthropic's Claude
