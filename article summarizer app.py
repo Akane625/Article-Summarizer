@@ -135,7 +135,7 @@ class Evaluator:
 # ---------------------------------------------------------------------------
 st.set_page_config(page_title="Extractive Summarizer", layout="wide")
 
-st.title("📝 Extractive Text Summarizer")
+st.title("📝 Extractive Article Summarizer")
 st.caption(
     "Paste an article below and compare three extractive summarization methods: "
     "Frequency, TF-IDF, and TextRank."
