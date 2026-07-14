@@ -1,0 +1,208 @@
+# only works on py 3.12 and below
+
+import re
+import networkx as nx
+import nltk
+import numpy as np
+import streamlit as st
+
+from heapq import nlargest
+from collections import Counter
+from nltk.corpus import stopwords
+from nltk.tokenize import sent_tokenize, word_tokenize
+from rouge_score import rouge_scorer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+
+# ---------------------------------------------------------------------------
+# One-time NLTK data setup
+# ---------------------------------------------------------------------------
+@st.cache_resource
+def ensure_nltk_data():
+    for pkg in ["punkt", "punkt_tab", "stopwords"]:
+        try:
+            nltk.data.find(f"tokenizers/{pkg}")
+        except LookupError:
+            try:
+                nltk.download(pkg, quiet=True)
+            except Exception:
+                pass
+    try:
+        nltk.data.find("corpora/stopwords")
+    except LookupError:
+        nltk.download("stopwords", quiet=True)
+
+
+ensure_nltk_data()
+STOP_WORDS = set(stopwords.words("english"))
+
+
+# ---------------------------------------------------------------------------
+# Processes
+# ---------------------------------------------------------------------------
+class Preprocessor:
+
+    @staticmethod
+    def sentences(text):
+        text = re.sub(r"\.(?=[A-Z])", ". ", text)  # spaces between sentences
+        text = re.sub(r"\s+", " ", text).strip()   # cleans spacing
+        return sent_tokenize(text)
+
+    @staticmethod
+    def clean(text):
+        text = text.lower()
+        text = re.sub(r"[^a-zA-Z0-9\s]", "", text)  # only alphanumeric
+        return text.strip()
+
+    @staticmethod
+    def remove_stopwords(words):
+        return [word for word in words if word not in STOP_WORDS]
+
+
+class BaseSummarizer:
+
+    def preprocess(self, article):
+        original = Preprocessor.sentences(article)
+        cleaned = [Preprocessor.clean(s) for s in original]
+        return original, cleaned
+
+    def summarize(self, article, num_sentences=3):
+        raise NotImplementedError
+
+
+class FrequencySummarizer(BaseSummarizer):
+
+    def summarize(self, article, num_sentences=3):
+        original, cleaned = self.preprocess(article)
+        words = word_tokenize(Preprocessor.clean(article))
+        words = Preprocessor.remove_stopwords(words)
+        frequency = Counter(words)
+
+        scores = {}
+        for original_s, cleaned_s in zip(original, cleaned):
+            for word in word_tokenize(cleaned_s):
+                if word in frequency:
+                    scores[original_s] = scores.get(original_s, 0) + frequency[word]
+
+        num_sentences = min(num_sentences, len(scores))
+        summary = nlargest(num_sentences, scores, key=scores.get)
+        return " ".join(summary)
+
+
+class TFIDFSummarizer(BaseSummarizer):
+
+    def summarize(self, article, num_sentences=3):
+        original, cleaned = self.preprocess(article)
+        matrix = TfidfVectorizer().fit_transform(cleaned)
+
+        scores = np.asarray(matrix.sum(axis=1)).flatten()
+        num_sentences = min(num_sentences, len(original))
+        best = nlargest(num_sentences, range(len(scores)), scores.take)
+
+        summary = [original[i] for i in best]
+        return " ".join(summary)
+
+
+class TextRankSummarizer(BaseSummarizer):
+
+    def summarize(self, article, num_sentences=3):
+        original, cleaned = self.preprocess(article)
+        matrix = TfidfVectorizer().fit_transform(cleaned)
+        similarity = cosine_similarity(matrix)
+        graph = nx.from_numpy_array(similarity)
+
+        scores = nx.pagerank(graph)
+        ranked = sorted(scores, key=scores.get, reverse=True)
+
+        num_sentences = min(num_sentences, len(original))
+        summary = [original[i] for i in ranked[:num_sentences]]
+        return " ".join(summary)
+
+
+class Evaluator:
+
+    @staticmethod
+    def rouge(reference, prediction):
+        scorer = rouge_scorer.RougeScorer(
+            ["rouge1", "rouge2", "rougeL"], use_stemmer=True
+        )
+        return scorer.score(reference, prediction)
+
+
+# ---------------------------------------------------------------------------
+# Streamlit UI
+# ---------------------------------------------------------------------------
+st.set_page_config(page_title="Extractive Summarizer", layout="wide")
+
+st.title("📝 Extractive Text Summarizer")
+st.caption(
+    "Paste an article below and compare three extractive summarization methods: "
+    "Frequency, TF-IDF, and TextRank."
+)
+
+with st.sidebar:
+    st.header("Settings")
+    num_sentences = st.slider("Sentences per summary", min_value=1, max_value=10, value=3)
+    show_rouge = st.checkbox("Show ROUGE scores (vs. full article)", value=True)
+    st.markdown("---")
+    st.markdown(
+        "**Note on ROUGE here:** scores compare each summary back to the *entire* "
+        "article, not a human-written reference summary so they reward literal "
+        "overlap with the source more than they reward a genuinely well-chosen summary. "
+        "Treat them as a rough, relative signal between the three methods, not an "
+        "absolute quality score."
+    )
+
+article = st.text_area(
+    "Article text",
+    height=280,
+    placeholder="Paste your article here...",
+)
+
+run = st.button("Summarize", type="primary", use_container_width=True)
+
+if run:
+    if not article or not article.strip():
+        st.warning("Please paste an article first.")
+    else:
+        cleaned_article = article.strip()
+        # Same normalization applied to the dataset in the notebook
+        cleaned_article = re.sub(r"\.(?=[A-Z])", ". ", cleaned_article)
+        cleaned_article = re.sub(r"\s+", " ", cleaned_article).strip()
+
+        n_sentences = len(sent_tokenize(cleaned_article))
+        if n_sentences < 2:
+            st.warning(
+                "This looks too short to summarize meaningfully "
+                f"(only {n_sentences} sentence detected). Try a longer article."
+            )
+        else:
+            frequency = FrequencySummarizer()
+            tfidf = TFIDFSummarizer()
+            textrank = TextRankSummarizer()
+            evaluator = Evaluator()
+
+            with st.spinner("Summarizing..."):
+                results = {
+                    "Frequency": frequency.summarize(cleaned_article, num_sentences),
+                    "TF-IDF": tfidf.summarize(cleaned_article, num_sentences),
+                    "TextRank": textrank.summarize(cleaned_article, num_sentences),
+                }
+
+            st.markdown("---")
+            cols = st.columns(3)
+            for col, (name, summary) in zip(cols, results.items()):
+                with col:
+                    st.subheader(name)
+                    st.write(summary if summary else "_No summary generated._")
+
+                    if show_rouge and summary:
+                        scores = evaluator.rouge(cleaned_article, summary)
+                        st.markdown("**ROUGE F1**")
+                        st.write(f"ROUGE-1: {scores['rouge1'].fmeasure:.4f}")
+                        st.write(f"ROUGE-2: {scores['rouge2'].fmeasure:.4f}")
+                        st.write(f"ROUGE-L: {scores['rougeL'].fmeasure:.4f}")
+
+            with st.expander("View original article"):
+                st.write(cleaned_article)
