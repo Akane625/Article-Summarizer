@@ -1,4 +1,4 @@
-# Overview
+# Article Summarizer
 **Created:** June 16 - 19, 2026  
 **Updated:** July 13 - 15, 2026 (created streaamlit app)  
 Dataset from [AsadMahmood (Kaggle)](https://www.kaggle.com/datasets/asad1m9a9h6mood/news-articles)
